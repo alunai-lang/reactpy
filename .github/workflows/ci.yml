@@ -111,7 +111,7 @@ jobs:
           CYPRESS_BASE_URL: ${{ needs.deploy.outputs.vercel_url }}
         with:
           working-directory: cypress-tests
-          install: false
+          #install: false
           component: false
           record: false
           publish-summary: true
