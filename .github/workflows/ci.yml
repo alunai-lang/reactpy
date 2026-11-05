@@ -80,37 +80,36 @@ jobs:
     needs: deploy
 
     steps:
-      # 1. Descarga el repositorio de Cypress en la raíz de trabajo
       - name: Checkout Cypress repo
         uses: actions/checkout@v4
         with:
           repository: 'alunai-lang/REP2'
           token: ${{ secrets.MI_GITHUB_TOKEN_REPOS }}
 
-      # 2. Configura Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
-      # 3. Forzar instalación en la raíz
       - name: Force Install Cypress Module
         run: npm install cypress --save-dev
 
-      # 4. Mensaje para verificar la URL recibida de Vercel
       - name: Debug URL
         run: echo "La URL recibida de Vercel es ${{ needs.deploy.outputs.vercel_url }}"
           
-      # 5. Ejecutar los tests e imprimir resultados puramente en consola
       - name: Run Cypress Tests
         uses: cypress-io/github-action@v6
         env:
           CYPRESS_BASE_URL: ${{ needs.deploy.outputs.vercel_url }}
-          # 💡 Desactivamos capturas y videos a nivel de entorno de Cypress para no generar peso visual ni de almacenamiento
           CYPRESS_SCREENSHOT_ON_RUN_FAILURE: false
           CYPRESS_VIDEO: false
+          # 💡 Evita problemas de renderizado de fuentes/gráficas virtuales en Linux sin GUI
+          ELECTRON_DISABLE_GPU: 1
+          DISABLE_X1IR_WORKAROUNDS: true
         with:
           install: false
           component: false
           record: false
-          publish-summary: true # Mantiene un resumen del test en la pestaña de GitHub Actions sin almacenar archivos pesados
+          publish-summary: true
+          # 💡 Forzamos el uso de Chrome en lugar de Electron, ya que gestiona mejor la memoria en GitHub Actions
+          browser: chrome 
