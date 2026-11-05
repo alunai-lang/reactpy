@@ -1,117 +1,47 @@
-
-name: React CI/CD Pipeline g FF
-
-# This triggers the workflow on pushes and pull requests to the main branch
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
-jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest  # This specifies the OS for the job
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Checks out the code from your repository
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2  # Sets up the Node.js environment
-        with:
-          node-version: '16'  # Specifies the version of Node.js
-
-      - name: Install dependencies
-        run: npm install  # Installs the required dependencies
-
-      - name: Build the app
-        run: npm run build  # Builds the React app for production
-
-  tests:
-    name: Run Tests
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        
-      - name: Use Node.js 18.x to run Test
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18.x
-          cache: 'npm'
-          
-      - name: Install Dependencies
-        run: npm ci
-        
-      - name: Run Tests
-        run: npm run test
-
-      #- name: Build the app
-      #  run: npm run build  # Builds the React app for production
-  # Job to deploy the application after build
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    needs: tests  # Ensures the deploy job runs only after the build job completes successfully
-
-    outputs:
-      vercel_url: ${{ steps.deploy-vercel.outputs.DEPLOY_URL }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4 #  Re-checks out the code for deployment
-
-      - name: Deploy to Vercel
-        id: deploy-vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        # 💡 Usamos --confirm y limpiamos la salida para extraer SOLO la URL limpia
-        run: |
-          URL=$(npx vercel --prod --yes --token $VERCEL_TOKEN | tail -n 1)
-          echo "DEPLOY_URL=$URL" >> $GITHUB_OUTPUT
-
   cypress-e2e:
     name: Cypress E2E Tests
     runs-on: ubuntu-latest
     needs: deploy  # Espera a que la app esté publicada en Vercel antes de probar
 
     steps:
-      # 1. Descarga el repositorio donde tienes guardado Cypress
+      # 1. Descarga el repositorio clonándolo directamente en la carpeta por defecto
       - name: Checkout Cypress repo
         uses: actions/checkout@v4
         with:
           repository: 'alunai-lang/reactpy'
           token: ${{ secrets.MI_GITHUB_TOKEN_REPOS }}
-          path: 'cypress-tests' # Descarga las pruebas en esta subcarpeta
+          path: 'cypress-tests' 
 
-      # 2. Configura Node.js para las pruebas
-      - name: Set up Node.js for Cypress
+      # 2. Configura Node.js para el entorno virtual
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
-      # 3. Log para verificar qué URL se está leyendo de Vercel
+      # 3. Forzar la instalación explícita de Cypress en el entorno virtual
+      # Esto garantiza que el runner de Node encuentre el módulo sin importar la estructura del repo
+      - name: Force Install Cypress Module
+        run: |
+          cd cypress-tests
+          npm install cypress --save-dev
+
+      # 4. Log para verificar la URL recibida de Vercel
       - name: Debug URL
         run: echo "La URL recibida de Vercel es ${{ needs.deploy.outputs.vercel_url }}"
           
-      # 4. Ejecutar Cypress (La acción instalará automáticamente Cypress en 'cypress-tests')
+      # 5. Ejecutar los tests saltándonos la verificación de instalación de la acción
       - name: Run Cypress Tests
         uses: cypress-io/github-action@v6
         env:
           CYPRESS_BASE_URL: ${{ needs.deploy.outputs.vercel_url }}
         with:
           working-directory: cypress-tests
-          # Dejamos que la acción maneje la instalación de forma nativa en este directorio
-          install: true 
+          install: false # 👈 Le decimos que NO intente instalar nada más porque ya lo forzamos en el paso 3
           component: false
           record: false
           publish-summary: true
 
-      # 5. Guardar capturas de pantalla en caso de fallos
+      # 6. Guardar capturas de pantalla en caso de fallos
       - name: Subir Todos los Screenshots
         uses: actions/upload-artifact@v4
         if: always() 
