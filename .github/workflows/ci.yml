@@ -80,39 +80,36 @@ jobs:
     needs: deploy  # Espera a que la app esté publicada en Vercel antes de probar
 
     steps:
-      # 1. Descarga el repositorio clonándolo directamente en la carpeta por defecto
+      # 1. Descarga el repositorio de Cypress directamente en la raíz de trabajo
       - name: Checkout Cypress repo
         uses: actions/checkout@v4
         with:
           repository: 'alunai-lang/reactpy'
           token: ${{ secrets.MI_GITHUB_TOKEN_REPOS }}
-          path: 'cypress-tests' 
+          # 💡 Eliminamos el parámetro "path: cypress-tests" para que se clone en la raíz del Runner
 
-      # 2. Configura Node.js para el entorno virtual
+      # 2. Configura Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
-      # 3. Forzar la instalación explícita de Cypress en el entorno virtual
-      # Esto garantiza que el runner de Node encuentre el módulo sin importar la estructura del repo
+      # 3. Forzar instalación en la raíz
       - name: Force Install Cypress Module
-        run: |
-          cd cypress-tests
-          npm install cypress --save-dev
+        run: npm install cypress --save-dev
 
-      # 4. Log para verificar la URL recibida de Vercel
+      # 4. Mensaje para verificar la URL recibida de Vercel
       - name: Debug URL
         run: echo "La URL recibida de Vercel es ${{ needs.deploy.outputs.vercel_url }}"
           
-      # 5. Ejecutar los tests saltándonos la verificación de instalación de la acción
+      # 5. Ejecutar los tests (Buscando cypress.config.js en la raíz por defecto)
       - name: Run Cypress Tests
         uses: cypress-io/github-action@v6
         env:
           CYPRESS_BASE_URL: ${{ needs.deploy.outputs.vercel_url }}
         with:
-          working-directory: cypress-tests
-          install: false # 👈 Le decimos que NO intente instalar nada más porque ya lo forzamos en el paso 3
+          # 💡 Eliminamos "working-directory: cypress-tests" ya que todo está en la raíz
+          install: false
           component: false
           record: false
           publish-summary: true
@@ -123,5 +120,6 @@ jobs:
         if: always() 
         with:
           name: cypress-screenshots
-          path: cypress-tests/cypress/screenshots/
+          # 💡 Corregimos la ruta eliminando el prefijo "cypress-tests/"
+          path: cypress/screenshots/
           if-no-files-found: warn
