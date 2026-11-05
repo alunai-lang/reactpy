@@ -84,7 +84,7 @@ jobs:
       - name: Checkout Cypress repo
         uses: actions/checkout@v4
         with:
-          repository: 'alunai-lang/reactpy'
+          repository: 'alunai-lang/REP2'
           token: ${{ secrets.MI_GITHUB_TOKEN_REPOS }}
           # 💡 Eliminamos el parámetro "path: cypress-tests" para que se clone en la raíz del Runner
 
