@@ -1,5 +1,5 @@
 
-name: React CI/CD Pipeline g F
+name: React CI/CD Pipeline g FF
 
 # This triggers the workflow on pushes and pull requests to the main branch
 on:
